@@ -25,7 +25,7 @@ export const postComment = async (c: Context<{ Bindings: Bindings }>) => {
   if (!data || typeof data !== 'object') {
     return c.json({ message: '无效的请求体' }, 400);
   }
-  const { post_slug: rawPostSlug, content: rawContent, name: rawName, email, url, post_title, post_url, adminToken, turnstileToken } = data;
+  const { post_slug: rawPostSlug, content: rawContent, name: rawName, email: rawEmail, url, post_title, post_url, adminToken, turnstileToken } = data;
   const post_slug = decodePostSlug(rawPostSlug || '');
   const site_id = data.site_id ? String(data.site_id).trim() : "";
   const parentId = (data as any).parent_id ?? (data as any).parentId ?? null;
@@ -38,10 +38,10 @@ export const postComment = async (c: Context<{ Bindings: Bindings }>) => {
   if (!rawName || typeof rawName !== 'string') {
     return c.json({ message: '昵称不能为空' }, 400);
   }
-  if (!email || typeof email !== 'string') {
-    return c.json({ message: '邮箱不能为空' }, 400);
-  }
-  if (!isValidEmail(email)) {
+  // 邮箱为选填项：不填也能评论（头像会退化用昵称生成）；
+  // 填了就校格式，避免把无效地址写进库（会影响回复通知 / 头像）。
+  const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+  if (email && !isValidEmail(email)) {
     return c.json({ message: '邮箱格式不正确' }, 400);
   }
   const ua = c.req.header('user-agent') || "";
