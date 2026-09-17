@@ -22,6 +22,7 @@ export class CommentForm extends Component {
 	 * @param {string} props.adminEmail - 管理员邮箱
 	 * @param {Array} props.emotionGroups - 表情分组
 	 * @param {Function} props.onVerifyAdmin - 验证管理员回调 (returns Promise)
+	 * @param {Function} props.onCollapse - 可选：收起评论表单回调（仅在折叠模式下传入）
 	 */
 	constructor(container, props = {}) {
 		super(container, props);
@@ -53,7 +54,6 @@ export class CommentForm extends Component {
 
 		const canSubmit =
 			localForm.name.trim() &&
-			localForm.email.trim() &&
 			localForm.content.trim() &&
 			(!this.props.turnstileSiteKey || this.turnstileToken);
 		const isAdmin = this.props.adminEmail && localForm.email.trim() === this.props.adminEmail;
@@ -143,6 +143,20 @@ export class CommentForm extends Component {
 				this.createElement('div', {
 					className: 'cwd-form-actions',
 					children: [
+						// 折叠模式下在左侧提供「收起」，点一下把整个表单收回去
+						...(this.props.onCollapse
+							? [
+									this.createElement('button', {
+										className: 'cwd-btn cwd-btn-text cwd-btn-collapse',
+										attributes: {
+											type: 'button',
+											disabled: submitting,
+											onClick: () => this.props.onCollapse(),
+										},
+										text: this.t('collapse'),
+									}),
+								]
+							: []),
 						this.createElement('button', {
 							className: `cwd-btn cwd-btn-secondary cwd-btn-preview ${this.state.showPreview ? 'cwd-btn-active' : ''}`,
 							attributes: {
@@ -274,7 +288,6 @@ export class CommentForm extends Component {
 
 		const canSubmit =
 			localForm.name.trim() &&
-			localForm.email.trim() &&
 			localForm.content.trim() &&
 			(!this.props.turnstileSiteKey || this.turnstileToken);
 

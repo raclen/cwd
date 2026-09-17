@@ -79,6 +79,64 @@
 }
 
 /* ========== CommentForm 组件 ========== */
+/* ========== 「写评论」入口（折叠表单模式） ========== */
+.cwd-form-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin-bottom: 24px;
+  background: var(--cwd-bg-input, #ffffff);
+  border: 1px solid var(--cwd-border, #d0d7de);
+  border-radius: var(--cwd-radius, 6px);
+  color: var(--cwd-text-secondary, #6e7781);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: text;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.cwd-form-trigger:hover {
+  background: var(--cwd-bg-hover, #f6f8fa);
+  border-color: var(--cwd-primary, #0969da);
+}
+
+.cwd-form-trigger:focus-visible {
+  outline: 2px solid var(--cwd-primary, #0969da);
+  outline-offset: 2px;
+}
+
+.cwd-form-trigger-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--cwd-text-secondary, #6e7781);
+}
+
+.cwd-form-trigger-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cwd-form-trigger-action {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--cwd-primary, #0969da);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cwd-form-trigger:hover .cwd-form-trigger-action {
+  background: var(--cwd-primary-hover, #0864ca);
+}
+
 .cwd-comment-form {
   background: var(--cwd-bg, #ffffff);
   border: 1px solid var(--cwd-border, #d0d7de);
@@ -355,6 +413,7 @@
 
 .cwd-form-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   margin-top: 16px;
   gap: 10px;
@@ -1196,6 +1255,16 @@
 
 .cwd-btn-text:hover {
   color: var(--cwd-primary);
+}
+
+/* 折叠模式：把「收起」推到左侧 */
+.cwd-btn-collapse {
+  margin-right: auto;
+  color: var(--cwd-text-secondary, #6e7781);
+}
+
+.cwd-btn-collapse:hover {
+  color: var(--cwd-primary, #0969da);
 }
 
 .cwd-admin-badge.cwd-admin-badge-icon {

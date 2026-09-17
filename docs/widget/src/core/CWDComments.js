@@ -24,6 +24,7 @@ export class CWDComments {
 	 * @param {number} [config.pageSize] - 每页评论数（可选，默认 20）
 	 * @param {string|Object} [config.emotionJson] - 前端表情 JSON 文件链接，留空则不显示表情按钮
 	 * @param {string} [config.turnstileSiteKey] - Cloudflare Turnstile site key（通常由后端自动下发）
+	 * @param {boolean} [config.collapseForm] - 是否默认收起评论表单，点击「写评论」入口后再展开（默认 false）
 	 *
 	 * 以下字段由组件自动推导或从后端读取，无需通过 config 传入：
 	 * - postSlug：window.location.origin + window.location.pathname
@@ -53,6 +54,9 @@ export class CWDComments {
 		this.commentList = null;
 		this.imagePreview = null;
 		this.formContainer = null;
+		// 折叠模式：入口按钮与当前的展开态（未开启折叠时 formExpanded 恒为 true，表单常显）
+		this.formTrigger = null;
+		this.formExpanded = this.config.collapseForm !== true;
 		this.customStyleElement = null;
 		this.store = null;
 		this.unsubscribe = null;
@@ -417,9 +421,32 @@ export class CWDComments {
 
 		this._initLikeButton(header);
 
+		// 折叠模式：在点赞区域与表单之间插入「写评论」入口
+		if (!this.formTrigger) {
+			this.formTrigger = document.createElement('button');
+			this.formTrigger.type = 'button';
+			this.formTrigger.className = 'cwd-form-trigger';
+			this.formTrigger.setAttribute('aria-expanded', 'false');
+			this.formTrigger.innerHTML = `
+				<span class="cwd-form-trigger-icon" aria-hidden="true">
+					<svg viewBox="0 0 16 16" width="16" height="16">
+						<path fill="currentColor" d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
+					</svg>
+				</span>
+				<span class="cwd-form-trigger-text">${this.t('writeComment')}</span>
+				<span class="cwd-form-trigger-action">${this.t('writeCommentBtn')}</span>
+			`;
+			this.formTrigger.addEventListener('click', () => this._setFormExpanded(true));
+		}
+
 		if (!this.formContainer) {
 			this.formContainer = document.createElement('div');
 			this.mountPoint.appendChild(this.formContainer);
+		}
+
+		// 入口必须紧贴在表单容器之前（其后依次是评论数、评论列表）
+		if (this.formTrigger.parentNode !== this.mountPoint || this.formTrigger.nextSibling !== this.formContainer) {
+			this.mountPoint.insertBefore(this.formTrigger, this.formContainer);
 		}
 
 		// 创建评论表单（放在点赞区域下方，使用单独容器以保证顺序）
@@ -432,6 +459,7 @@ export class CWDComments {
 				onFieldChange: (field, value) => this.store.updateFormField(field, value),
 				adminEmail: this.config.adminEmail,
 				onVerifyAdmin: (key) => this.api.verifyAdminKey(key),
+				onCollapse: this.config.collapseForm === true ? () => this._setFormExpanded(false) : null,
 				placeholder: this.config.commentPlaceholder,
 				emotionGroups: this.emotionGroups,
 				turnstileSiteKey: this.config.turnstileSiteKey,
@@ -508,6 +536,52 @@ export class CWDComments {
 			});
 			this.commentList.render();
 		}
+
+		// 让折叠状态与 DOM 保持一致（幂等，重渲染时也安全）
+		this._applyFormVisibility();
+	}
+
+	/**
+	 * 应用评论表单的折叠状态：入口与表单互斥显示。
+	 * 未开启 collapseForm 时，入口恒隐藏、表单恒显示（与旧版行为一致）。
+	 * @private
+	 */
+	_applyFormVisibility() {
+		const collapse = this.config.collapseForm === true;
+		const showTrigger = collapse && !this.formExpanded;
+
+		if (this.formTrigger) {
+			this.formTrigger.style.display = showTrigger ? '' : 'none';
+			this.formTrigger.setAttribute('aria-expanded', showTrigger ? 'false' : 'true');
+		}
+		if (this.formContainer) {
+			this.formContainer.style.display = showTrigger ? 'none' : '';
+		}
+	}
+
+	/**
+	 * 展开 / 收起评论表单（仅在开启 collapseForm 时生效）。
+	 * @param {boolean} expanded - true 展开，false 收起
+	 * @private
+	 */
+	_setFormExpanded(expanded) {
+		if (this.config.collapseForm !== true) {
+			return;
+		}
+		const next = expanded === true;
+		if (next === this.formExpanded) {
+			return;
+		}
+		this.formExpanded = next;
+		this._applyFormVisibility();
+
+		if (next) {
+			// 展开后直接把光标放进输入框
+			const textarea = this.commentForm?.elements?.root?.querySelector('textarea');
+			if (textarea && typeof textarea.focus === 'function') {
+				textarea.focus();
+			}
+		}
 	}
 
 	/**
@@ -522,10 +596,14 @@ export class CWDComments {
 		// 根据回复状态显示/隐藏主评论表单
 		if (this.commentForm?.elements?.root) {
 			const formRoot = this.commentForm.elements.root;
-			if (state.replyingTo !== null) {
-				formRoot.style.display = 'none';
-			} else {
+			if (this.config.collapseForm === true) {
+				// 折叠模式：整块表单由入口控制显隐，开始回复时先收起（避免留下一片空白）
 				formRoot.style.display = '';
+				if (state.replyingTo !== null) {
+					this._setFormExpanded(false);
+				}
+			} else {
+				formRoot.style.display = state.replyingTo !== null ? 'none' : '';
 			}
 		}
 
@@ -650,6 +728,8 @@ export class CWDComments {
 				this.commentForm.state.showPreview = false;
 				this.commentForm.render();
 			}
+			// 折叠模式：提交成功后自动收起，回到「写评论」入口态
+			this._setFormExpanded(false);
 		}
 		return result;
 	}
@@ -680,6 +760,18 @@ export class CWDComments {
 			this.mountPoint.setAttribute('data-theme', newConfig.theme);
 			this.commentForm?.setProps({ turnstileTheme: newConfig.theme });
 			this.commentList?.setProps({ turnstileTheme: newConfig.theme });
+		}
+
+		// 运行时切换「表单是否折叠」（初始化之后一般不会再改）
+		if (newConfig.collapseForm !== undefined && newConfig.collapseForm !== prevConfig.collapseForm) {
+			this.formExpanded = newConfig.collapseForm !== true;
+			if (this.commentForm) {
+				this.commentForm.setProps({
+					onCollapse: newConfig.collapseForm === true ? () => this._setFormExpanded(false) : null,
+				});
+				this.commentForm.render();
+			}
+			this._applyFormVisibility();
 		}
 
 		const shouldReload =

@@ -61,10 +61,8 @@ export function validateCommentForm(data) {
     errors.name = '昵称不能超过 50 字';
   }
 
-  // 验证邮箱
-  if (!data.email || data.email.trim().length === 0) {
-    errors.email = '请输入邮箱';
-  } else if (!isValidEmail(data.email)) {
+  // 验证邮箱（选填：留空放行，填了才校验格式）
+  if (data.email && data.email.trim().length > 0 && !isValidEmail(data.email)) {
     errors.email = '邮箱格式不正确';
   }
 
@@ -103,10 +101,8 @@ export function validateReplyUserInfo(data) {
     errors.name = '昵称不能超过 50 字';
   }
 
-  // 验证邮箱
-  if (!data.email || data.email.trim().length === 0) {
-    errors.email = '请输入邮箱';
-  } else if (!isValidEmail(data.email)) {
+  // 验证邮箱（选填：留空放行，填了才校验格式）
+  if (data.email && data.email.trim().length > 0 && !isValidEmail(data.email)) {
     errors.email = '邮箱格式不正确';
   }
 

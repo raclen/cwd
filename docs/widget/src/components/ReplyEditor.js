@@ -28,8 +28,9 @@ export class ReplyEditor extends Component {
 		const { currentUser } = props;
 		this.state = {
 			content: props.content || '',
-			// 如果没有昵称或邮箱，显示用户信息输入框。且一旦显示，在当前编辑器生命周期内保持显示，避免输入过程中消失
-			showUserInfo: !currentUser || !currentUser.name || !currentUser.email,
+			// 昵称是必填项；邮箱是选填的，不再因为没填而弹出用户信息输入框。
+			// 一旦显示，在当前编辑器生命周期内保持显示，避免输入过程中消失。
+			showUserInfo: !currentUser || !currentUser.name,
 			showPreview: false,
 		};
 		this.emotionPicker = null;
