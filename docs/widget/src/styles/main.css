@@ -840,6 +840,29 @@
   text-align: center;
 }
 
+/* 紧凑点赞条：config.compactLikeBar 开启时生效。
+   默认样式是「32px 大爱心竖排 + 上下各 30px 留白 + 外层 16px 内边距」≈154px 高，
+   而实际内容只有 62px，评论区顶部会空一大片（配合默认收起的表单尤其明显）。
+   这里把点赞收成一行小胶囊，高度降到 ≈28px。 */
+.cwd-compact-like .cwd-comments-header {
+  padding: 0 0 12px;
+}
+
+.cwd-compact-like .cwd-like {
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.cwd-compact-like .cwd-like-button {
+  flex-direction: row;
+  gap: 6px;
+}
+
+.cwd-compact-like .cwd-like-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .cwd-like-animate .cwd-like-icon {
   animation: cwd-like-bounce 0.3s ease;
 }

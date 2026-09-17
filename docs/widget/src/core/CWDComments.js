@@ -25,6 +25,7 @@ export class CWDComments {
 	 * @param {string|Object} [config.emotionJson] - 前端表情 JSON 文件链接，留空则不显示表情按钮
 	 * @param {string} [config.turnstileSiteKey] - Cloudflare Turnstile site key（通常由后端自动下发）
 	 * @param {boolean} [config.collapseForm] - 是否默认收起评论表单，点击「写评论」入口后再展开（默认 false）
+	 * @param {boolean} [config.compactLikeBar] - 文章点赞条是否用紧凑单行样式，避免评论区顶部大片空白（默认 false）
 	 *
 	 * 以下字段由组件自动推导或从后端读取，无需通过 config 传入：
 	 * - postSlug：window.location.origin + window.location.pathname
@@ -164,6 +165,10 @@ export class CWDComments {
 			this.shadowRoot.appendChild(this.mountPoint);
 			const theme = this.config.theme || 'light';
 			this.mountPoint.setAttribute('data-theme', theme);
+			// 紧凑点赞条（opt-in）：把「大爱心竖排 + 上下 30px 留白」收成一行小胶囊
+			if (this.config.compactLikeBar === true) {
+				this.mountPoint.classList.add('cwd-compact-like');
+			}
 			this._applyCustomCss();
 		}
 
@@ -772,6 +777,11 @@ export class CWDComments {
 				this.commentForm.render();
 			}
 			this._applyFormVisibility();
+		}
+
+		// 运行时切换「点赞条是否紧凑」（初始化之后一般不会再改）
+		if (newConfig.compactLikeBar !== undefined && this.mountPoint) {
+			this.mountPoint.classList.toggle('cwd-compact-like', newConfig.compactLikeBar === true);
 		}
 
 		const shouldReload =

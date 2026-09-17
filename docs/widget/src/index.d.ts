@@ -58,6 +58,13 @@ export interface CWDCommentsConfig {
   enableCommentLike?: boolean;
 
   /**
+   * Use a compact single-row style for the post like bar (removes the large blank
+   * area above the comment area)
+   * @default false
+   */
+  compactLikeBar?: boolean;
+
+  /**
    * Enable/Disable article likes
    */
   enableArticleLike?: boolean;
