@@ -207,7 +207,7 @@
               {{ index + 1 }}
             </div>
             <div class="domain-cell domain-cell-title">
-              {{ item.pageTitle || item.pageSlug }}
+              {{ item.pageTitle || "-" }}
             </div>
             <div class="domain-cell domain-cell-like">
               {{ item.likes }}
@@ -239,7 +239,7 @@ import {
   type LikeStatsItem,
 } from "../../api/admin";
 import { useSite } from "../../composables/useSite";
-import { resolvePageHref } from './pageHref';
+import { resolvePageHref } from '../../utils/pageHref';
 
 const { t } = useI18n();
 
@@ -290,11 +290,7 @@ const visitTabStorageKey = "cwd-analytics-visit-tab";
 const chartRangeStorageKey = "cwd-analytics-visit-chart-range";
 
 const last30Days = ref<{ date: string; total: number }[]>([]);
-const likeStats = ref<LikeStatsItem[]>([]);
-const likeStatsItems = computed(() => likeStats.value.map((item) => ({
-  ...item,
-  href: resolvePageHref(item.pageUrl) ?? resolvePageHref(item.pageSlug),
-})));
+const likeStatsItems = ref<(LikeStatsItem & { href: string | null })[]>([]);
 const chartRange = ref<"7" | "30">("7");
 
 const toastMessage = ref("");
@@ -464,7 +460,11 @@ async function loadData() {
         ? overviewRes.last30Days
         : [],
     };
-    likeStats.value = Array.isArray(likeStatsRes.items) ? likeStatsRes.items : [];
+    const likeRows = Array.isArray(likeStatsRes.items) ? likeStatsRes.items : [];
+    likeStatsItems.value = likeRows.map((item) => ({
+      ...item,
+      href: resolvePageHref(item.pageUrl, domain) ?? resolvePageHref(item.pageSlug, domain),
+    }));
     const pageItemsByPv = Array.isArray(pagesRes.itemsByPv)
       ? pagesRes.itemsByPv
       : [];

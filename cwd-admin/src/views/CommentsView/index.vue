@@ -31,7 +31,7 @@
             {{ t("comments.table.actions") }}
           </div>
         </div>
-        <div v-for="item in filteredComments" :key="item.id" class="table-row">
+        <div v-for="{ item, href } in commentRows" :key="item.id" class="table-row">
           <div class="table-cell table-cell-author">
             <div class="cell-author-wrapper">
               <img
@@ -90,14 +90,12 @@
             <div class="cell-content-text" v-html="item.contentHtml"></div>
           </div>
           <div class="table-cell table-cell-path">
-            <a
-              :href="item.postUrl ?? undefined"
-              target="_blank"
-              class="cell-path"
-              :title="item.postUrl ?? undefined"
-            >
-              {{ item.postUrl || item.postSlug }}
+            <a v-if="href" :href="href" target="_blank" rel="noreferrer" class="cell-path" :title="href">
+              {{ href }}
             </a>
+            <span v-else class="cell-path" :title="item.postUrl || item.postSlug">
+              {{ item.postUrl || item.postSlug }}
+            </span>
           </div>
           <div class="table-cell table-cell-status">
             <div class="cell-status-wrapper">
@@ -253,6 +251,7 @@ import {
   blockEmail,
 } from "../../api/admin";
 import { useSite } from "../../composables/useSite";
+import { resolvePageHref } from '../../utils/pageHref';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -291,6 +290,13 @@ const filteredComments = computed(() => {
   }
   return comments.value.filter((item) => item.status === statusFilter.value);
 });
+
+const commentRows = computed(() =>
+  filteredComments.value.map((item) => ({
+    item,
+    href: resolvePageHref(item.postUrl, item.siteId) ?? resolvePageHref(item.postSlug, item.siteId),
+  }))
+);
 
 // ... visiblePages computed ...
 const visiblePages = computed(() => {
