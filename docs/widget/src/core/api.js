@@ -148,7 +148,8 @@ export function createApiClient(config) {
 
     async function getLikeStatus() {
         const params = new URLSearchParams({
-            post_slug: config.postUrl
+            // 与 likePage 写入的 postSlug 一致，避免查询地址变更后读不到历史点赞。
+            post_slug: config.postSlug
         });
         const headers = {
             'X-CWD-Like-User': getLikeUserId()

@@ -60,6 +60,8 @@ https://cwd.js.org/cwd.js
 | `apiBaseUrl`   | `string`                | 是   | -                          | API 基础地址                             |
 | `siteId`       | `string`                | 否   | `''`                       | 站点 ID，用于多站点数据隔离，推荐配置    |
 | `postSlug`     | `string`                | 否   | `window.location.pathname` | 自定义评论标识符，用于跨路径/多语言聚合  |
+| `postUrl`      | `string`                | 否   | `window.location.origin + window.location.pathname` | 固定文章 URL，用于通知、后台链接与 PV 关联 |
+| `postTitle`    | `string`                | 否   | `document.title`           | 自定义文章标题，供后台和通知显示         |
 | `lang`         | `string`                | 否   | `auto`                     | 评论组件语言代码，支持 `zh-CN`、`en-US`、`fr` 等，`auto` 表示自动根据浏览器语言选择 |
 | `theme`        | `'light' \| 'dark'`     | 否   | `'light'`                  | 主题模式                                 |
 | `pageSize`     | `number`                | 否   | `20`                       | 每页显示评论数                           |
@@ -67,6 +69,33 @@ https://cwd.js.org/cwd.js
 | `turnstileSiteKey` | `string`             | 否   | 后端配置                   | Cloudflare Turnstile 站点密钥，通常无需手动传入 |
 
 配置后端 `TURNSTILE_SITE_KEY` 和 `TURNSTILE_SECRET_KEY` 后，组件会从 `/api/config/comments` 自动读取站点密钥，并在新评论和回复提交前要求完成人机验证，密钥的申请方式见[人机验证 Turnstile](/guide/turnstile)。
+
+### 文章 URL 迁移与历史数据兼容
+
+评论以 `siteId` 和 `postSlug` 关联，文章点赞沿用 `postSlug`，PV 使用 `postUrl`（未提供时回退到 `postSlug`）。把日期/标题长链接改成 `/blog/200/` 等短链接时，仅配置 `postSlug` 不能保留全部历史统计。
+
+历史文章可以继续使用原来的存储标识，无需直接修改 D1 数据：
+
+```javascript
+const legacyPath = new URL('/blog/2026-11-22-200-旧文章标题/', 'https://example.com').pathname;
+const comments = new CWDComments({
+	el: '#comments',
+	apiBaseUrl: 'https://comments.example.com',
+	siteId: 'blog', // 必须与迁移前一致
+	postSlug: legacyPath, // 保留历史评论路径及原有的编码、末尾斜杠格式
+	postUrl: 'https://example.com' + legacyPath, // 保留历史 PV 使用的域名与路径
+});
+comments.mount();
+```
+
+- 浏览器地址仍使用新的短链接；`postSlug`、`postUrl` 只是 CWD 的关联标识，不会修改浏览器地址。
+- 示例中的路径、域名、`siteId` 必须替换为实际历史值，不能直接改成新的编号标识，否则会创建独立的数据关联。
+- 博客需要继续维护旧链接到新链接的 301 重定向，因为后台和通知仍可能引用历史 URL。
+- 显式传入的 `postSlug`、`postUrl`、`postTitle` 在 `updateConfig({ theme: 'dark' })` 等无关更新时保持不变，不需要修改实例内部的 `config`。
+- 未传入的字段继续自动推导；给字段传入空字符串可恢复自动推导。单页应用切换文章时，应传入新文章对应的标识，或卸载后重新初始化实例。
+- 新发表且没有历史数据的文章可直接采用编号路径。不要删除历史映射；关闭或删除文章后如需恢复原评论，也需要原映射。
+
+此修改位于 Widget 源码。自托管的博客必须更新构建后的 `cwd.js` 才能使用；只部署评论 API 或只修改此仓库源码不会更新博客中已经复制的组件文件。旧版 Widget 会覆盖 `postUrl`，不能直接套用以上配置。
 
 ### 多语言配置说明
 

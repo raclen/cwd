@@ -20,6 +20,9 @@ export class CWDComments {
 	 * @param {Object} config - 配置对象
 	 * @param {string|HTMLElement} config.el - 挂载元素选择器或 DOM 元素
 	 * @param {string} config.apiBaseUrl - API 基础地址
+	 * @param {string} [config.postSlug] - 固定评论标识，缺省使用当前路径；迁移时可保留历史路径
+	 * @param {string} [config.postTitle] - 固定文章标题，缺省使用 document.title
+	 * @param {string} [config.postUrl] - 固定文章 URL，供通知、后台链接与 PV 关联使用；迁移时应保留历史 URL
 	 * @param {'light'|'dark'} [config.theme] - 主题（可选）
 	 * @param {number} [config.pageSize] - 每页评论数（可选，默认 20）
 	 * @param {string|Object} [config.emotionJson] - 前端表情 JSON 文件链接，留空则不显示表情按钮
@@ -27,27 +30,22 @@ export class CWDComments {
 	 * @param {boolean} [config.collapseForm] - 是否默认收起评论表单，点击「写评论」入口后再展开（默认 false）
 	 * @param {boolean} [config.compactLikeBar] - 文章点赞条是否用紧凑单行样式，避免评论区顶部大片空白（默认 false）
 	 *
-	 * 以下字段由组件自动推导或从后端读取，无需通过 config 传入：
-	 * - postSlug：window.location.origin + window.location.pathname
-	 * - postTitle：document.title 或 postSlug
-	 * - postUrl：window.location.origin + window.location.pathname
-	 * - avatarPrefix/adminEmail/adminBadge：通过 /api/config/comments 接口获取
+	 * postSlug、postTitle、postUrl 未配置时才从当前页面推导，显式配置在主题更新时保持不变。
+	 * avatarPrefix/adminEmail/adminBadge 通过 /api/config/comments 接口获取。
 	 */
 	constructor(config) {
 		this.config = { ...config };
+		// 单独保留调用方的显式配置，避免把自动推导的地址误当作固定标识。
+		this._postConfig = {
+			postSlug: config.postSlug,
+			postTitle: config.postTitle,
+			postUrl: config.postUrl,
+		};
 		this.emotionGroups = [];
 		if (config.siteId) {
 			this.config.siteId = config.siteId;
 		}
-		if (typeof window !== 'undefined' && !this.config.postSlug) {
-			this.config.postSlug = window.location.pathname;
-		}
-		if (typeof document !== 'undefined') {
-			this.config.postTitle = document.title || this.config.postSlug;
-		}
-		if (typeof window !== 'undefined') {
-			this.config.postUrl = window.location.origin + window.location.pathname;
-		}
+		this._resolvePostConfig();
 		this.hostElement = this._resolveElement(config.el);
 		this.shadowRoot = null;
 		this.mountPoint = null;
@@ -74,6 +72,20 @@ export class CWDComments {
 		
 		this.localeData = locales['zh-CN'];
 		this.t = this.t.bind(this);
+	}
+
+	/**
+	 * 解析文章配置：显式标识保持稳定，未配置的字段继续跟随当前页面。
+	 * @private
+	 */
+	_resolvePostConfig() {
+		if (typeof window !== 'undefined') {
+			this.config.postSlug = this._postConfig.postSlug || window.location.pathname;
+			this.config.postUrl = this._postConfig.postUrl || window.location.origin + window.location.pathname;
+		}
+		if (typeof document !== 'undefined') {
+			this.config.postTitle = this._postConfig.postTitle || document.title || this.config.postSlug;
+		}
 	}
 
 	/**
@@ -750,15 +762,12 @@ export class CWDComments {
 		if (newConfig.siteId !== undefined) {
 			this.config.siteId = newConfig.siteId;
 		}
-		if (typeof window !== 'undefined' && !this.config.postSlug) {
-			this.config.postSlug = window.location.pathname;
+		for (const key of ['postSlug', 'postTitle', 'postUrl']) {
+			if (Object.prototype.hasOwnProperty.call(newConfig, key)) {
+				this._postConfig[key] = newConfig[key];
+			}
 		}
-		if (typeof document !== 'undefined') {
-			this.config.postTitle = document.title || this.config.postSlug;
-		}
-		if (typeof window !== 'undefined') {
-			this.config.postUrl = window.location.origin + window.location.pathname;
-		}
+		this._resolvePostConfig();
 
 		// 更新主题
 		if (newConfig.theme && this.mountPoint) {

@@ -15,17 +15,20 @@ export interface CWDCommentsConfig {
   siteId?: string;
   
   /**
-   * Current post slug (defaults to window.location.pathname)
+   * 固定评论标识，默认使用 window.location.pathname。
+   * URL 迁移时可继续传原路径，更新主题不会重置；传空字符串可恢复自动推导。
    */
   postSlug?: string;
-  
+
   /**
-   * Current post title (defaults to document.title)
+   * 固定文章标题，默认使用 document.title；显式传入时更新主题不会覆盖。
    */
   postTitle?: string;
-  
+
   /**
-   * Current post URL (defaults to window.location.href)
+   * 固定文章 URL，默认使用 window.location.origin + window.location.pathname。
+   * 通知、后台链接与 PV 依赖此 URL，迁移时保留原值才能沿用历史统计；更新主题不会覆盖。
+   * 传空字符串可恢复自动推导，查询参数与 hash 不参与默认 URL。
    */
   postUrl?: string;
   
