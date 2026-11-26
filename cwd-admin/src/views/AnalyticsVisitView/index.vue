@@ -165,15 +165,10 @@
               {{ formatTime(item.lastVisitAt) }}
             </div>
             <div class="domain-cell domain-cell-url">
-              <a
-                v-if="item.postUrl"
-                :href="item.postUrl"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {{ item.postUrl }}
+              <a v-if="item.href" :href="item.href" target="_blank" rel="noreferrer">
+                {{ item.href }}
               </a>
-              <span v-else>-</span>
+              <span v-else>{{ item.postUrl || "-" }}</span>
             </div>
           </div>
         </div>
@@ -218,15 +213,10 @@
               {{ item.likes }}
             </div>
             <div class="domain-cell domain-cell-url">
-              <a
-                v-if="item.pageSlug"
-                :href="item.pageSlug"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {{ item.pageSlug }}
+              <a v-if="item.href" :href="item.href" target="_blank" rel="noreferrer">
+                {{ item.href }}
               </a>
-              <span v-else>-</span>
+              <span v-else>{{ item.pageUrl || item.pageSlug || "-" }}</span>
             </div>
           </div>
         </div>
@@ -249,6 +239,7 @@ import {
   type LikeStatsItem,
 } from "../../api/admin";
 import { useSite } from "../../composables/useSite";
+import { resolvePageHref } from './pageHref';
 
 const { t } = useI18n();
 
@@ -290,18 +281,20 @@ const monthPercentageChange = computed(() => {
 
 const itemsByPv = ref<VisitPageItem[]>([]);
 const itemsByLatest = ref<VisitPageItem[]>([]);
-const items = computed<VisitPageItem[]>(() => {
-  if (visitTab.value === "latest") {
-    return itemsByLatest.value;
-  }
-  return itemsByPv.value;
+const items = computed(() => {
+  const rows = visitTab.value === 'latest' ? itemsByLatest.value : itemsByPv.value;
+  return rows.map((item) => ({ ...item, href: resolvePageHref(item.postUrl) }));
 });
 const visitTab = ref<"pv" | "latest">("pv");
 const visitTabStorageKey = "cwd-analytics-visit-tab";
 const chartRangeStorageKey = "cwd-analytics-visit-chart-range";
 
 const last30Days = ref<{ date: string; total: number }[]>([]);
-const likeStatsItems = ref<LikeStatsItem[]>([]);
+const likeStats = ref<LikeStatsItem[]>([]);
+const likeStatsItems = computed(() => likeStats.value.map((item) => ({
+  ...item,
+  href: resolvePageHref(item.pageUrl) ?? resolvePageHref(item.pageSlug),
+})));
 const chartRange = ref<"7" | "30">("7");
 
 const toastMessage = ref("");
@@ -471,8 +464,7 @@ async function loadData() {
         ? overviewRes.last30Days
         : [],
     };
-    const likeItemsRaw = Array.isArray(likeStatsRes.items) ? likeStatsRes.items : [];
-    likeStatsItems.value = likeItemsRaw;
+    likeStats.value = Array.isArray(likeStatsRes.items) ? likeStatsRes.items : [];
     const pageItemsByPv = Array.isArray(pagesRes.itemsByPv)
       ? pagesRes.itemsByPv
       : [];
